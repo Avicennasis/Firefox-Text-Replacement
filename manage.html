@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Replacements</title>
+    <style>
+        /*
+         * Security Note: We use system fonts instead of external CDN fonts.
+         * This eliminates external dependencies, improves privacy, and speeds up loading.
+         * The font stack below provides excellent cross-platform typography.
+         */
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --accent: #ff0055;
+            --bg-dark: #0f172a;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px;
+            min-height: 100vh;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(79, 172, 254, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 0, 85, 0.1) 0%, transparent 40%);
+            background-attachment: fixed;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+            letter-spacing: -1px;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            margin-top: 10px;
+            font-weight: 300;
+        }
+
+        /* Toggle Switch CSS */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            vertical-align: middle;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background-color: var(--text-muted);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: rgba(0, 242, 254, 0.2);
+            border-color: var(--secondary);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+            background-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        /* Master Switch Styled Differently */
+        .master-switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .master-label {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        /* Export/Import Section */
+        .export-import-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: var(--text-main);
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(79, 172, 254, 0.1);
+            border-color: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.2);
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+        }
+
+        /* Form Section */
+        .add-section {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 40px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            transition: all 0.3s ease;
+        }
+
+        .add-section:focus-within {
+            border-color: rgba(79, 172, 254, 0.5);
+            box-shadow: 0 0 20px rgba(79, 172, 254, 0.1);
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-left: 4px;
+        }
+
+        input[type="text"] {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 0 4px rgba(0, 242, 254, 0.1);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            border: none;
+            border-radius: 12px;
+            padding: 0 24px;
+            height: 48px;
+            color: #000;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 242, 254, 0.3);
+        }
+
+        .btn-add:active {
+            transform: translateY(0);
+        }
+
+        /* Search Box */
+        .search-container {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        #searchBox {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        #searchBox:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 0 4px rgba(0, 242, 254, 0.1);
+        }
+
+        .search-results {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        /* Table Section */
+        .table-container {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 16px 24px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        td {
+            padding: 16px 24px;
+            border-top: 1px solid var(--glass-border);
+            transition: background 0.2s;
+            vertical-align: middle;
+        }
+
+        tr {
+            transition: opacity 0.3s;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Inline editing inputs */
+        td input[type="text"] {
+            background: transparent;
+            border: 1px solid transparent;
+            padding: 8px 0;
+            border-radius: 0;
+            margin: -8px 0;
+        }
+
+        td input[type="text"]:focus {
+            background: transparent;
+            border-bottom: 2px solid var(--primary);
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .btn-remove {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--glass-border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .btn-remove:hover {
+            background: rgba(255, 0, 85, 0.1);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        #status {
+            text-align: center;
+            font-weight: 500;
+            margin-bottom: 20px;
+            min-height: 24px;
+            opacity: 0.9;
+            text-shadow: 0 0 10px rgba(0, 230, 118, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Text Replacements</h1>
+            <p class="subtitle">Customize your web experience</p>
+        </header>
+
+        <div class="master-switch-container">
+            <span class="master-label">Extension Enabled</span>
+            <label class="toggle-switch" aria-label="Toggle extension on/off">
+                <input type="checkbox" id="masterSwitch" aria-label="Enable or disable text replacement extension">
+                <span class="slider" aria-hidden="true"></span>
+            </label>
+        </div>
+
+        <!-- Export/Import Section -->
+        <div class="export-import-section" role="group" aria-label="Rule backup and restore">
+            <button id="exportBtn" class="btn-secondary" aria-label="Export all rules to JSON file">📥 Export Rules</button>
+            <button id="importBtn" class="btn-secondary" aria-label="Import rules from JSON file">📤 Import Rules</button>
+            <input type="file" id="importFile" accept=".json" style="display: none;" aria-label="Select JSON file to import">
+        </div>
+
+        <div id="status" role="status" aria-live="polite"></div>
+
+        <form id="addReplacementForm" class="add-section" aria-label="Add new replacement rule">
+            <div class="input-group">
+                <label for="newOriginal">Original String</label>
+                <input type="text" id="newOriginal" name="newOriginal" placeholder="e.g. 'cat'" required
+                    autocomplete="off" aria-label="Text to find and replace" aria-required="true">
+            </div>
+
+            <div class="input-group">
+                <label for="newReplacement">Replacement String</label>
+                <input type="text" id="newReplacement" name="newReplacement" placeholder="e.g. 'dog'" required
+                    autocomplete="off" aria-label="Text to replace it with" aria-required="true">
+            </div>
+
+            <div class="input-group" style="flex: 0 0 auto; align-items: center; min-width: 80px;">
+                <label>Match Case</label>
+                <!-- Form specific toggle -->
+                <div style="margin-top: 12px;">
+                    <label class="toggle-switch" title="Match Case?" aria-label="Enable case-sensitive matching">
+                        <input type="checkbox" id="newCaseSensitive" name="newCaseSensitive" aria-label="Match exact capitalization">
+                        <span class="slider" aria-hidden="true"></span>
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-add" aria-label="Add this replacement rule">Add Rule</button>
+        </form>
+
+        <!-- Search Box -->
+        <div class="search-container" role="search">
+            <input type="text" id="searchBox" placeholder="🔍 Search rules..." autocomplete="off"
+                   aria-label="Search replacement rules by original or replacement text">
+            <span id="searchResults" class="search-results" role="status" aria-live="polite"></span>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th width="30%">Original String</th>
+                        <th width="30%">Replacement String</th>
+                        <th width="10%" style="text-align: center;">Match Case</th>
+                        <th width="10%" style="text-align: center;">Enabled</th>
+                        <th width="20%"></th> <!-- Empty header for Remove button -->
+                    </tr>
+                </thead>
+                <tbody id="replacementList">
+                    <!-- Rows will be injected here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="manage.js"></script>
+</body>
+
+</html>
