@@ -147,6 +147,9 @@ function updateRegexes(wordMap) {
 // Modifying these could break websites or annoying users while typing.
 const ignoredTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT']);
 
+// Track start time of the current node processing for timeout checks
+let currentNodeStartTime = 0;
+
 /**
  * Checks if a node is editable (like a text box).
  * We skip these so we don't change text while you are typing it!
@@ -156,6 +159,34 @@ function isEditable(node) {
   if (node.parentNode && node.parentNode.isContentEditable) return true;
   return false;
 }
+
+/**
+ * This function decides what replacement text to use for a match.
+ * PERFORMANCE: Uses O(1) hash map lookups instead of O(n) iteration!
+ *
+ * Moved outside processNode to avoid repeated function allocation.
+ */
+const replaceCallback = (match) => {
+  // Timeout safety check: if we've been processing too long, abort!
+  // This prevents the extension from hanging the browser on pathological patterns.
+  if (performance.now() - currentNodeStartTime > REGEX_TIMEOUT_MS) {
+    throw new Error('Regex timeout'); // Will be caught below
+  }
+
+  // 1. Check exact match (for case-sensitive rules)
+  if (wordMapCache[match]) return wordMapCache[match].replacement;
+
+  // 2. Check case-insensitive match using our pre-built lowercase map
+  // OLD CODE: Looped through ALL keys - O(n) complexity! Slow with many rules.
+  // NEW CODE: Direct hash lookup - O(1) complexity! Instant even with 255 rules.
+  const lowerMatch = match.toLowerCase();
+  if (wordMapCacheLower[lowerMatch]) {
+    return wordMapCacheLower[lowerMatch].replacement;
+  }
+
+  // 3. Fallback (shouldn't happen if regex works correctly)
+  return match;
+};
 
 /**
  * The core function that actually changes text.
@@ -172,31 +203,7 @@ function processNode(node) {
   let changed = false;
 
   // Start timer to enforce timeout limit and prevent browser freezing
-  const startTime = performance.now();
-
-  // This function decides what replacement text to use for a match.
-  // PERFORMANCE: Uses O(1) hash map lookups instead of O(n) iteration!
-  const replaceCallback = (match) => {
-    // Timeout safety check: if we've been processing too long, abort!
-    // This prevents the extension from hanging the browser on pathological patterns.
-    if (performance.now() - startTime > REGEX_TIMEOUT_MS) {
-      throw new Error('Regex timeout'); // Will be caught below
-    }
-
-    // 1. Check exact match (for case-sensitive rules)
-    if (wordMapCache[match]) return wordMapCache[match].replacement;
-
-    // 2. Check case-insensitive match using our pre-built lowercase map
-    // OLD CODE: Looped through ALL keys - O(n) complexity! Slow with many rules.
-    // NEW CODE: Direct hash lookup - O(1) complexity! Instant even with 255 rules.
-    const lowerMatch = match.toLowerCase();
-    if (wordMapCacheLower[lowerMatch]) {
-      return wordMapCacheLower[lowerMatch].replacement;
-    }
-
-    // 3. Fallback (shouldn't happen if regex works correctly)
-    return match;
-  };
+  currentNodeStartTime = performance.now();
 
   try {
     // Run Case-Sensitive replacements first
